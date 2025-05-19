@@ -7,14 +7,13 @@ with open("README.md", 'r') as readme:
     long_description = readme.read()
 
 setup(
-    name='',  # TODO: Put your package name here.
+    name='multiscale_actin',
     version='0.0.1',
     packages=[
-        # TODO: Replace 'template' with the name of your folder.
-        'template',
-        'template.processes',
-        'template.composites',
-        'template.experiments',
+        'multiscale_actin',
+        'multiscale_actin.processes',
+        'multiscale_actin.composites',
+        'multiscale_actin.experiments',
     ],
     author='',  # TODO: Put your name here.
     author_email='',  # TODO: Put your email here.
@@ -29,7 +28,6 @@ setup(
     include_package_data=True,
     install_requires=[
         'vivarium-core',
-        'pytest',
-        # TODO: Add other dependencies.
+        'simularium_readdy_models @ git+https://github.com/blairlyons/readdy-models.git',
     ],
 )
