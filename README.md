@@ -13,4 +13,4 @@ conda env create -f env.yml
 conda activate multiscale-actin
 ```
 
-which will create and then activate a conda environment called vivarium-models with all the required dependencies (including ReaDDy) installed.
+which will create and then activate a conda environment called multiscale-actin with all the required dependencies (including ReaDDy) installed.
