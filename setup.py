@@ -28,6 +28,7 @@ setup(
     include_package_data=True,
     install_requires=[
         'vivarium-core',
+        'process-bigraph',
         'simularium_readdy_models @ git+https://github.com/blairlyons/readdy-models.git',
     ],
 )

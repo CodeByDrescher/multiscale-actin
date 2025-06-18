@@ -1,3 +1,4 @@
+from process_bigraph.process_types import ProcessTypes
 
 particle = {
     'type_name': 'string',
@@ -9,3 +10,9 @@ topology = {
     'type_name': 'string',
     'particle_ids': 'list[int]',
 }
+
+core = ProcessTypes()
+
+# register types
+core.register('topology', topology)
+core.register('particle', particle)
