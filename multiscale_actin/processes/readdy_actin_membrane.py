@@ -1,7 +1,7 @@
 import numpy as np
 
 from process_bigraph import Process, Composite, gather_emitter_results
-from process_bigraph.emitter import add_emitter_to_composite
+from process_bigraph.emitter import emitter_from_wires
 from process_bigraph.process_types import ProcessTypes
 
 from simularium_readdy_models.actin import (
@@ -246,12 +246,6 @@ def run_readdy_actin_membrane(total_time=1e-9):
     }
 
     # make the simulation
-    membrane_monomers = get_membrane_monomers(
-        center=np.array([25.0, 0.0, 0.0]), 
-        size=np.array([0.0, 100.0, 100.0]), 
-        particle_radius=2.5,
-    )
-
     actin_monomers = ActinGenerator.get_monomers(
         fibers_data=[
             FiberData(
@@ -274,6 +268,17 @@ def run_readdy_actin_membrane(total_time=1e-9):
         n_fixed_monomers_pointed=3, 
         n_fixed_monomers_barbed=0,
     )
+    membrane_monomers = get_membrane_monomers(
+        center=np.array([25.0, 0.0, 0.0]), 
+        size=np.array([0.0, 100.0, 100.0]), 
+        particle_radius=2.5,
+        start_particle_id=len(actin_monomers["particles"].keys()),
+        top_id=1
+    )
+    monomers = {
+        'particles': {**actin_monomers['particles'], **membrane_monomers['particles']},
+        'topologies': {**actin_monomers['topologies'], **membrane_monomers['topologies']}
+    }
 
     state  = {
         'readdy': {
@@ -289,20 +294,27 @@ def run_readdy_actin_membrane(total_time=1e-9):
                 'topologies': ['topologies']        
             }
         },
-        'particles': {},  # put the initial particles here
-        'topologies': {},   # put the initial topologies here
+        **monomers
     }
+
+    state["emitter"] = emitter_from_wires(
+        {
+            'particles': ['particles'],
+            'topologies': ['topologies']        
+        },
+        address='local:simularium-emitter'
+    )
 
     # TODO do this elsewhere?
     core = ProcessTypes()
     particle = {
         'type_name': 'string',
         'position': 'tuple[float,float,float]',
-        'neighbor_ids': 'list[int]',
+        'neighbor_ids': 'list[integer]',
     }
     topology = {
         'type_name': 'string',
-        'particle_ids': 'list[int]',
+        'particle_ids': 'list[integer]',
     }
     core.register('topology', topology)
     core.register('particle', particle)
@@ -312,23 +324,14 @@ def run_readdy_actin_membrane(total_time=1e-9):
 
     sim = Composite({
         "state": state,
-        "emitter": {"mode": "all"}
+        # "emitter": {"mode": "all"}
     }, core=core)
-
-    sim = add_emitter_to_composite(
-        sim,
-        core,
-        emitter_mode='all',
-        address='local:simularium-emitter'
-    )
 
     # simulate
     print("Simulating...")
     sim.update({}, total_time)
 
     results = gather_emitter_results(sim)
-
-    import ipdb; ipdb.set_trace()
     
 
 if __name__ == "__main__":

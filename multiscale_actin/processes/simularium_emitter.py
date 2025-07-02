@@ -15,46 +15,31 @@ from simulariumio import (
 
 class SimulariumEmitter(Emitter):
 
+    def __init__(self, config, core):
+        super().__init__(config, core)
+        self.configuration_data = None
+        self.saved_data: Dict[float, Dict[str, Any]] = {}
+
     def update(self, state) -> Dict:
 
-        import ipdb; ipdb.set_trace()
+        # if state["table"] == "configuration":
+        #     self.configuration_data = state["data"]
+        #     assert "processes" in self.configuration_data, "please emit processes"
+        # if state["table"] == "history":
+        #     emit_data = state["data"]
+        #     time = emit_data["time"]
+        #     self.saved_data[time] = {
+        #         key: value for key, value in emit_data.items() if key not in ["time"]
+        #     }
+        
+        if "particles" not in state or "topologies" not in state:
+            return {}
+        self.saved_data["0.0"] = state
 
         return {}
 
-
-
-
-
-
-    def get_simularium_fibers(
-        self, time, fibers, actin_radius, position_offset, trajectory
-    ):
-        """
-        Shape fiber state data into Simularium fiber agents
-        """
-        print(f"      {position_offset}")
-        n_agents = 0
-        time_index = len(trajectory["times"])
-        trajectory["times"].append(time)
-        trajectory["unique_ids"].append([])
-        trajectory["type_names"].append([])
-        trajectory["n_subpoints"].append([])
-        trajectory["subpoints"].append([])
-        for fiber_id in fibers:
-            fiber = fibers[fiber_id]
-            fiber_points = [
-                np.array(point) + position_offset for point in fiber["points"]
-            ]
-            n_agents += 1
-            trajectory["unique_ids"][time_index].append(int(fiber_id))
-            trajectory["type_names"][time_index].append(fiber["type_name"])
-            trajectory["n_subpoints"][time_index].append(len(fiber_points))
-            trajectory["subpoints"][time_index].append(fiber_points)
-        trajectory["n_agents"].append(n_agents)
-        trajectory["viz_types"].append(n_agents * [1001.0])
-        trajectory["positions"].append(n_agents * [[0.0, 0.0, 0.0]])
-        trajectory["radii"].append(n_agents * [actin_radius])
-        return trajectory
+    def query(self, query=None):
+        return {'result' : self.save_simularium_file()}
 
     def get_simularium_monomers(
         self, time, monomers, actin_radius, position_offset, trajectory
@@ -78,20 +63,14 @@ class SimulariumEmitter(Emitter):
             )
             # visualize edges between particles
             for neighbor_id in particle["neighbor_ids"]:
-                neighbor_id_str = str(neighbor_id)
-                edge = (particle_id, neighbor_id_str)
-                reverse_edge = (
-                    neighbor_id_str,
-                    particle_id,
-                )
+                edge = (particle_id, neighbor_id)
+                reverse_edge = (neighbor_id, particle_id)
                 if edge not in edge_ids and reverse_edge not in edge_ids:
                     edge_ids.append(edge)
                     edge_positions.append(
-                        [
-                            np.array(particle["position"]) + position_offset,
-                            np.array(monomers["particles"][neighbor_id_str]["position"])
-                            + position_offset,
-                        ]
+                        (np.array(particle["position"]) + position_offset).tolist()
+                        + (np.array(monomers["particles"][neighbor_id]["position"])
+                        + position_offset).tolist()
                     )
         n_agents = len(trajectory["unique_ids"][time_index])
         n_edges = len(edge_ids)
@@ -104,8 +83,8 @@ class SimulariumEmitter(Emitter):
         trajectory["radii"].append(n_agents * [actin_radius])
         trajectory["radii"][time_index] += n_edges * [1.0]
         trajectory["n_subpoints"].append(n_agents * [0])
-        trajectory["n_subpoints"][time_index] += n_edges * [2]
-        trajectory["subpoints"].append(n_agents * [2 * [[0.0, 0.0, 0.0]]])
+        trajectory["n_subpoints"][time_index] += n_edges * [6]
+        trajectory["subpoints"].append(n_agents * [6 * [0.0]])
         trajectory["subpoints"][time_index] += edge_positions
         return trajectory
 
@@ -122,44 +101,14 @@ class SimulariumEmitter(Emitter):
         return df
 
     @staticmethod
-    def jagged_3d_list_to_numpy_array(jagged_3d_list):
+    def jagged_3d_list_to_numpy_array(jagged_3d_list, length_per_item=3):
         """
         Shape a jagged list with 3 dimensions to a numpy array
         """
         df = SimulariumEmitter.fill_df(pd.DataFrame(jagged_3d_list), [0.0, 0.0, 0.0])
         df_t = df.transpose()
         exploded = [df_t[col].explode() for col in list(df_t.columns)]
-        return np.array(exploded).reshape((df.shape[0], df.shape[1], 3))
-
-    @staticmethod
-    def get_subpoints_numpy_array(trajectory) -> np.ndarray:
-        """
-        Shape a 4 dimensional jagged list for subpoints into a numpy array
-        """
-        frame_arrays = []
-        max_agents = 0
-        max_subpoints = 0
-        total_steps = len(trajectory["subpoints"])
-        for time_index in range(total_steps):
-            frame_array = SimulariumEmitter.jagged_3d_list_to_numpy_array(
-                trajectory["subpoints"][time_index]
-            )
-            if frame_array.shape[0] > max_agents:
-                max_agents = frame_array.shape[0]
-            if frame_array.shape[1] > max_subpoints:
-                max_subpoints = frame_array.shape[1]
-            frame_arrays.append(frame_array)
-        values_per_frame = max_agents * max_subpoints * 3
-        result = np.zeros(total_steps * values_per_frame)
-        for time_index, frame_array in enumerate(frame_arrays):
-            if frame_array.shape[1] < max_subpoints:
-                new_frame_array = np.zeros((frame_array.shape[0], max_subpoints, 3))
-                new_frame_array[:, : frame_array.shape[1]] = frame_array
-                frame_array = new_frame_array
-            flat_array = frame_array.flatten()
-            start_index = time_index * values_per_frame
-            result[start_index : start_index + flat_array.shape[0]] = flat_array
-        return result.reshape(total_steps, max_agents, max_subpoints, 3)
+        return np.array(exploded).reshape((df.shape[0], df.shape[1], length_per_item))
 
     @staticmethod
     def get_agent_data_from_jagged_lists(trajectory, scale_factor) -> AgentData:
@@ -186,7 +135,7 @@ class SimulariumEmitter(Emitter):
                 pd.DataFrame(trajectory["n_subpoints"]), 0
             ).to_numpy(dtype=int),
             subpoints=scale_factor
-            * SimulariumEmitter.get_subpoints_numpy_array(trajectory),
+            * SimulariumEmitter.jagged_3d_list_to_numpy_array(trajectory["subpoints"], 6),
         )
 
     @staticmethod
@@ -212,18 +161,12 @@ class SimulariumEmitter(Emitter):
             )
         )
 
-    def get_data(self) -> dict:
+    def save_simularium_file(self) -> str:
         """
-        Save the accumulated timeseries history of "emitted" data to file
+        Save the accumulated timeseries history of emitted data to file
         """
-
-        import ipdb; ipdb.set_trace()
-
-        if "readdy_actin" in self.configuration_data:
-            actin_radius = self.configuration_data["readdy_actin"]["actin_radius"]
-        else:
-            actin_radius = 3.0  # TODO add to MEDYAN/Cytosim configs
-        box_dimensions = None
+        actin_radius = 3.0
+        box_dimensions = np.array(3 * [150.])
         trajectory = {
             "times": [],
             "n_agents": [],
@@ -235,36 +178,17 @@ class SimulariumEmitter(Emitter):
             "n_subpoints": [],
             "subpoints": [],
         }
-        times = list(self.saved_data.keys())
-        times.sort()
-        vizualize_time_index = 0
         for time, state in self.saved_data.items():
-            index = times.index(time)
-            current_choice = SimulariumEmitter.get_active_choice(state["choices"])
-            if box_dimensions is None and "fibers_box_extent" in state:
-                box_dimensions = np.array(state["fibers_box_extent"])
-            if VIZ_FOR_CHOICE[current_choice] == "fibers":
-                center_fibers = (
-                    index == 0 or "readdy_active" in state["choices"]
-                )  # TODO generalize
-                trajectory = self.get_simularium_fibers(
-                    vizualize_time_index,
-                    state["fibers"],
-                    actin_radius,
-                    -0.5 * box_dimensions if center_fibers else np.zeros(3),
-                    trajectory,
-                )
-                vizualize_time_index += 1
-            if VIZ_FOR_CHOICE[current_choice] == "monomers":
-                trajectory = self.get_simularium_monomers(
-                    vizualize_time_index,
-                    state["monomers"],
-                    actin_radius,
-                    (np.array(state["monomers"]["box_center"]) - 0.5 * box_dimensions),
-                    trajectory,
-                )
-                vizualize_time_index += 1
+            trajectory = self.get_simularium_monomers(
+                time,
+                state,
+                actin_radius,
+                np.zeros(3),
+                trajectory,
+            )
         simularium_converter = SimulariumEmitter.get_simularium_converter(
             trajectory, box_dimensions, 0.1
         )
-        simularium_converter.write_JSON("out/actin_test")
+        output_path = "test"
+        simularium_converter.save(output_path)
+        return f"saved to {output_path}.simularium"
