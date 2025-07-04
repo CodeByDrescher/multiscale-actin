@@ -16,3 +16,6 @@ core = ProcessTypes()
 # register types
 core.register('topology', topology)
 core.register('particle', particle)
+
+core.register_process('readdy', ReaddyActinMembrane)
+core.register_process('simularium-emitter', SimulariumEmitter)

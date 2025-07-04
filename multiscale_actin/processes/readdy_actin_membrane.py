@@ -77,16 +77,24 @@ class ReaddyActinMembrane(Process):
         'dihedrals_force_constant': 'float',
         'actin_constraints': 'boolean',
         'add_monomer_box_potentials': 'boolean',
-        "use_box_actin": 'boolean',
-        "actin_box_center_x": 'float',
-        "actin_box_center_y": 'float',
-        "actin_box_center_z": 'float',
-        "actin_box_size_x": 'float',
-        "actin_box_size_y": 'float',
-        "actin_box_size_z": 'float',
+        'use_box_actin': 'boolean',
+        'actin_box_center_x': 'float',
+        'actin_box_center_y': 'float',
+        'actin_box_center_z': 'float',
+        'actin_box_size_x': 'float',
+        'actin_box_size_y': 'float',
+        'actin_box_size_z': 'float',
         'add_extra_box': 'boolean',
         'barbed_binding_site': 'boolean',
         'binding_site_reaction_distance': 'float',
+        'add_membrane': 'boolean',
+        "membrane_center_x": 'float',
+        "membrane_center_y": 'float',
+        "membrane_center_z": 'float',
+        "membrane_size_x": 'float',
+        "membrane_size_y": 'float',
+        "membrane_size_z": 'float',
+        'membrane_particle_radius': 'float'
     }
 
     def initialize(self, config):
@@ -125,11 +133,8 @@ class ReaddyActinMembrane(Process):
         readdy_monomers = ReaddyUtil.get_current_monomers(
             self.readdy_simulation.current_topologies
         )
-        transformed_monomers = transform_monomers(
-            readdy_monomers, self.config["box_center"]
-        )
 
-        return transformed_monomers
+        return readdy_monomers
 
 
 def simulate_readdy(internal_timestep, readdy_system, readdy_simulation, timestep):
@@ -150,20 +155,18 @@ def simulate_readdy(internal_timestep, readdy_system, readdy_simulation, timeste
         react = readdy_actions.reaction_handler_uncontrolled_approximation(
             internal_timestep
         )
-        observe = readdy_actions.evaluate_observables()
         init()
         create_nl()
-        calculate_forces()
+        # calculate_forces()
         update_nl()
-        observe(0)
-        n_steps = int(timestep * 1e9 / internal_timestep)
+        n_steps = 1 # int(timestep / internal_timestep)
+        print(f"running readdy for {n_steps} steps")
         for t in range(1, n_steps + 1):
-            diffuse()
+            # diffuse()
             update_nl()
             react()
             update_nl()
-            calculate_forces()
-            observe(t) # do we need this?
+            # calculate_forces()
 
     readdy_simulation._run_custom_loop(loop, show_summary=False)
 
@@ -177,7 +180,6 @@ def transform_monomers(monomers, box_center):
 def run_readdy_actin_membrane(total_time=1e-9):
     config = {
         "name": "actin_membrane",
-        "timestep": 1.0,
         "internal_timestep": 0.1,  # ns
         "box_size": np.array([float(150.0)] * 3),  # nm
         "periodic_boundary": True,
@@ -231,9 +233,9 @@ def run_readdy_actin_membrane(total_time=1e-9):
         "bonds_force_multiplier": 0.2,
         "angles_force_constant": 1000.0,
         "dihedrals_force_constant": 1000.0,
-        "actin_constraints": True,
-        "add_monomer_box_potentials": False,
-        "use_box_actin": False,
+        "actin_constraints": False, # testing
+        "add_monomer_box_potentials": True,
+        "use_box_actin": True,
         "actin_box_center_x": 12.0,
         "actin_box_center_y": 0.0,
         "actin_box_center_z": 0.0,
@@ -243,6 +245,14 @@ def run_readdy_actin_membrane(total_time=1e-9):
         "add_extra_box": False,
         "barbed_binding_site": True,
         "binding_site_reaction_distance": 3.0,
+        "add_membrane": True,
+        "membrane_center_x": 25.0,
+        "membrane_center_y": 0.0,
+        "membrane_center_z": 0.0,
+        "membrane_size_x": 0.0,
+        "membrane_size_y": 100.0,
+        "membrane_size_z": 100.0,
+        'membrane_particle_radius': 2.5
     }
 
     # make the simulation
@@ -275,9 +285,20 @@ def run_readdy_actin_membrane(total_time=1e-9):
         start_particle_id=len(actin_monomers["particles"].keys()),
         top_id=1
     )
+    free_actin_monomers = ActinGenerator.get_free_actin_monomers(
+        concentration=500.0, 
+        box_center=np.array([12., 0., 0.]), 
+        box_size=np.array([20., 50., 50.]), 
+        start_particle_id=len(actin_monomers["particles"].keys()) + len(membrane_monomers["particles"].keys()), 
+        start_top_id=2
+    )
     monomers = {
         'particles': {**actin_monomers['particles'], **membrane_monomers['particles']},
         'topologies': {**actin_monomers['topologies'], **membrane_monomers['topologies']}
+    }
+    monomers = {
+        'particles': {**monomers['particles'], **free_actin_monomers['particles']},
+        'topologies': {**monomers['topologies'], **free_actin_monomers['topologies']}
     }
 
     state  = {
@@ -300,12 +321,12 @@ def run_readdy_actin_membrane(total_time=1e-9):
     state["emitter"] = emitter_from_wires(
         {
             'particles': ['particles'],
-            'topologies': ['topologies']        
+            'topologies': ['topologies'],   
+            'global_time': ['global_time']    
         },
         address='local:simularium-emitter'
     )
 
-    # TODO do this elsewhere?
     core = ProcessTypes()
     particle = {
         'type_name': 'string',
@@ -324,12 +345,11 @@ def run_readdy_actin_membrane(total_time=1e-9):
 
     sim = Composite({
         "state": state,
-        # "emitter": {"mode": "all"}
     }, core=core)
 
     # simulate
     print("Simulating...")
-    sim.update({}, total_time)
+    sim.run(1)
 
     results = gather_emitter_results(sim)
     

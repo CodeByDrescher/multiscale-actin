@@ -22,20 +22,10 @@ class SimulariumEmitter(Emitter):
 
     def update(self, state) -> Dict:
 
-        # if state["table"] == "configuration":
-        #     self.configuration_data = state["data"]
-        #     assert "processes" in self.configuration_data, "please emit processes"
-        # if state["table"] == "history":
-        #     emit_data = state["data"]
-        #     time = emit_data["time"]
-        #     self.saved_data[time] = {
-        #         key: value for key, value in emit_data.items() if key not in ["time"]
-        #     }
+        import ipdb; ipdb.set_trace()
         
-        if "particles" not in state or "topologies" not in state:
-            return {}
-        self.saved_data["0.0"] = state
-
+        if "particles" in state and "topologies" in state:
+            self.saved_data[state['global_time']] = state
         return {}
 
     def query(self, query=None):
