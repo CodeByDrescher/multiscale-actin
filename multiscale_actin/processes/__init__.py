@@ -4,11 +4,13 @@ particle = {
     'type_name': 'string',
     'position': 'tuple[float,float,float]',
     'neighbor_ids': 'list[int]',
+    '_apply': 'set',
 }
 
 topology = {
     'type_name': 'string',
     'particle_ids': 'list[int]',
+    '_apply': 'set',
 }
 
 core = ProcessTypes()

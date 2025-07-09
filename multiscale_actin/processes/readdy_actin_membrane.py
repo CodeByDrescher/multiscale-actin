@@ -110,14 +110,8 @@ class ReaddyActinMembrane(Process):
 
     def outputs(self):
         return {
-            'topologies': {
-                '_type': 'map[topology]',
-                '_apply': 'set',
-            },
-            'particles': {
-                '_type': 'map[particle]',
-                '_apply': 'set',
-            },
+            'topologies': 'map[topology]',
+            'particles': 'map[particle]',
         }
 
     def update(self, inputs, interval):
@@ -157,16 +151,16 @@ def simulate_readdy(internal_timestep, readdy_system, readdy_simulation, timeste
         )
         init()
         create_nl()
-        # calculate_forces()
+        calculate_forces()
         update_nl()
-        n_steps = 1 # int(timestep / internal_timestep)
+        n_steps = int(timestep / internal_timestep)
         print(f"running readdy for {n_steps} steps")
         for t in range(1, n_steps + 1):
-            # diffuse()
+            diffuse()
             update_nl()
             react()
             update_nl()
-            # calculate_forces()
+            calculate_forces()
 
     readdy_simulation._run_custom_loop(loop, show_summary=False)
 
@@ -177,7 +171,7 @@ def transform_monomers(monomers, box_center):
     return monomers
 
 
-def run_readdy_actin_membrane(total_time=1e-9):
+def run_readdy_actin_membrane(total_time=2):
     config = {
         "name": "actin_membrane",
         "internal_timestep": 0.1,  # ns
@@ -332,10 +326,12 @@ def run_readdy_actin_membrane(total_time=1e-9):
         'type_name': 'string',
         'position': 'tuple[float,float,float]',
         'neighbor_ids': 'list[integer]',
+        '_apply': 'set',
     }
     topology = {
         'type_name': 'string',
         'particle_ids': 'list[integer]',
+        '_apply': 'set',
     }
     core.register('topology', topology)
     core.register('particle', particle)
@@ -348,8 +344,7 @@ def run_readdy_actin_membrane(total_time=1e-9):
     }, core=core)
 
     # simulate
-    print("Simulating...")
-    sim.run(1)
+    sim.run(total_time) # time in ns
 
     results = gather_emitter_results(sim)
     

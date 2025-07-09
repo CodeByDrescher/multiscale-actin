@@ -21,9 +21,6 @@ class SimulariumEmitter(Emitter):
         self.saved_data: Dict[float, Dict[str, Any]] = {}
 
     def update(self, state) -> Dict:
-
-        import ipdb; ipdb.set_trace()
-        
         if "particles" in state and "topologies" in state:
             self.saved_data[state['global_time']] = state
         return {}
