@@ -92,10 +92,11 @@ class SimulariumEmitter(Emitter):
         """
         Shape a jagged list with 3 dimensions to a numpy array
         """
-        df = SimulariumEmitter.fill_df(pd.DataFrame(jagged_3d_list), [0.0, 0.0, 0.0])
+        df = SimulariumEmitter.fill_df(pd.DataFrame(jagged_3d_list), length_per_item * [0.0])
         df_t = df.transpose()
         exploded = [df_t[col].explode() for col in list(df_t.columns)]
-        return np.array(exploded).reshape((df.shape[0], df.shape[1], length_per_item))
+        result = np.array(exploded).reshape((df.shape[0], df.shape[1], length_per_item))
+        return result
 
     @staticmethod
     def get_agent_data_from_jagged_lists(trajectory, scale_factor) -> AgentData:
