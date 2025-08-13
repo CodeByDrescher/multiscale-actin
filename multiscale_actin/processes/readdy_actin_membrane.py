@@ -97,8 +97,8 @@ class ReaddyActinMembrane(Process):
         'membrane_particle_radius': 'float'
     }
 
-    def initialize(self, config):
-        actin_simulation = ActinSimulation(self.config)
+    def initialize(self, config, readdy_system=None):
+        actin_simulation = ActinSimulation(self.config, False, False, readdy_system)
         self.readdy_system = actin_simulation.system
         self.readdy_simulation = actin_simulation.simulation
 
@@ -115,6 +115,9 @@ class ReaddyActinMembrane(Process):
         }
 
     def update(self, inputs, interval):
+
+        self.initialize(self.config, self.readdy_system)
+
         ReaddyUtil.add_monomers_from_data(self.readdy_simulation, inputs)
 
         simulate_readdy(
@@ -124,11 +127,25 @@ class ReaddyActinMembrane(Process):
             interval
         )
 
+        id_diff = id_difference(self.readdy_simulation.current_topologies)
+
         readdy_monomers = ReaddyUtil.get_current_monomers(
-            self.readdy_simulation.current_topologies
+            self.readdy_simulation.current_topologies, id_diff
         )
 
         return readdy_monomers
+
+
+def id_difference(current_topologies):
+    """
+    Get the first ID coming out of ReaDDy, it should be zero 
+    unless Readdy ran multiple times and cached the IDs, which
+    would cause Vivarium to create new particles instead of 
+    updating existing particles. 
+
+    (This is a HACK needed as long as ReaDDy has this behavior.)
+    """
+    return current_topologies[0].particles[0].id
 
 
 def simulate_readdy(internal_timestep, readdy_system, readdy_simulation, timestep):
@@ -165,13 +182,7 @@ def simulate_readdy(internal_timestep, readdy_system, readdy_simulation, timeste
     readdy_simulation._run_custom_loop(loop, show_summary=False)
 
 
-def transform_monomers(monomers, box_center):
-    for particle_id in monomers["particles"]:
-        monomers["particles"][particle_id]["position"] += box_center
-    return monomers
-
-
-def run_readdy_actin_membrane(total_time=2):
+def run_readdy_actin_membrane(total_time=3):
     config = {
         "name": "actin_membrane",
         "internal_timestep": 0.1,  # ns
@@ -227,7 +238,7 @@ def run_readdy_actin_membrane(total_time=2):
         "bonds_force_multiplier": 0.2,
         "angles_force_constant": 1000.0,
         "dihedrals_force_constant": 1000.0,
-        "actin_constraints": False, # testing
+        "actin_constraints": True,
         "add_monomer_box_potentials": True,
         "use_box_actin": True,
         "actin_box_center_x": 12.0,
