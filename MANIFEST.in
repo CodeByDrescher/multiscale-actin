@@ -1,0 +1,5 @@
+include *.sh
+include *.txt
+include *.yml
+include pytest.ini
+recursive-include multiscale_actin *.py
