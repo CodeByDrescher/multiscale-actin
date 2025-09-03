@@ -5,12 +5,8 @@ A Vivarium wrapper for ReaDDy actin models.
 ## Installation
 
 Install conda: https://docs.conda.io/en/latest/miniconda.html
+(`conda` is currently required to install `readdy`.)
 
-Using conda, you can run
-
-```
-conda env create -f env.yml
-conda activate multiscale-actin
-```
-
-which will create and then activate a conda environment called multiscale-actin with all the required dependencies (including ReaDDy) installed.
+1. Create a virtual environment with conda-specific dependencies: `conda env create -f environment.yml`
+2. Activate the environment: `conda activate multiscale-actin`
+3. Install with pip dependencies: `pip install multiscale_actin` (or install in editable mode: `pip install -e .`)
