@@ -93,7 +93,10 @@ class ReaddyActinMembrane(Process):
         "membrane_size_x": 'float',
         "membrane_size_y": 'float',
         "membrane_size_z": 'float',
-        'membrane_particle_radius': 'float'
+        'membrane_particle_radius': 'float',
+        'obstacle_controlled_position_x': 'float',
+        'obstacle_controlled_position_y': 'float',
+        'obstacle_controlled_position_z': 'float'
     }
 
     def initialize(self, config, readdy_system=None):
@@ -255,7 +258,10 @@ def run_readdy_actin_membrane(total_time=3):
         "membrane_size_x": 0.0,
         "membrane_size_y": 100.0,
         "membrane_size_z": 100.0,
-        'membrane_particle_radius': 2.5
+        'membrane_particle_radius': 2.5,
+        'obstacle_controlled_position_x': 0.0,
+        'obstacle_controlled_position_y': 0.0,
+        'obstacle_controlled_position_z': 0.0,
     }
 
     # make the simulation
