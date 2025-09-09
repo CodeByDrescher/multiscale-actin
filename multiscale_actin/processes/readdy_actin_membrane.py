@@ -1,3 +1,5 @@
+import random
+
 import numpy as np
 
 from process_bigraph import Process, Composite, gather_emitter_results
@@ -96,10 +98,13 @@ class ReaddyActinMembrane(Process):
         'membrane_particle_radius': 'float',
         'obstacle_controlled_position_x': 'float',
         'obstacle_controlled_position_y': 'float',
-        'obstacle_controlled_position_z': 'float'
+        'obstacle_controlled_position_z': 'float',
+        'random_seed': 'integer'
     }
 
     def initialize(self, config, readdy_system=None):
+        random.seed(self.config['random_seed'])
+        np.random.seed(self.config['random_seed'])
         actin_simulation = ActinSimulation(self.config, False, False, readdy_system)
         self.readdy_system = actin_simulation.system
         self.readdy_simulation = actin_simulation.simulation
@@ -262,9 +267,12 @@ def run_readdy_actin_membrane(total_time=3):
         'obstacle_controlled_position_x': 0.0,
         'obstacle_controlled_position_y': 0.0,
         'obstacle_controlled_position_z': 0.0,
+        'random_seed': 0,
     }
 
     # make the simulation
+    random.seed(config['random_seed'])
+    np.random.seed(config['random_seed'])
     actin_monomers = ActinGenerator.get_monomers(
         fibers_data=[
             FiberData(
