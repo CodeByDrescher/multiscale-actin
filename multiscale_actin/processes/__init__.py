@@ -1,4 +1,6 @@
 from process_bigraph.process_types import ProcessTypes
+from multiscale_actin.processes.readdy_actin_membrane import ReaddyActinMembrane
+from multiscale_actin.processes.simularium_emitter import SimulariumEmitter
 
 particle = {
     'type_name': 'string',

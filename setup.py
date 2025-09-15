@@ -12,7 +12,6 @@ setup(
     packages=[
         'multiscale_actin',
         'multiscale_actin.processes',
-        'multiscale_actin.composites',
         'multiscale_actin.experiments',
     ],
     author='Blair Lyons',
@@ -27,7 +26,6 @@ setup(
     package_data={},
     include_package_data=True,
     install_requires=[
-        'vivarium-core',
         'process-bigraph',
         'simularium-readdy-models',
     ],

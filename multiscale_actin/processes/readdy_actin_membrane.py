@@ -246,7 +246,6 @@ def run_readdy_actin_membrane(total_time=3):
         "angles_force_constant": 1000.0,
         "dihedrals_force_constant": 1000.0,
         "actin_constraints": True,
-        "use_box_actin": True,
         "actin_box_center_x": 12.0,
         "actin_box_center_y": 0.0,
         "actin_box_center_z": 0.0,
