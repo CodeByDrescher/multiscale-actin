@@ -1,9 +1,10 @@
 import random
 
 import numpy as np
+import os
 
 from process_bigraph import Process, Composite, gather_emitter_results
-from process_bigraph.emitter import emitter_from_wires
+from process_bigraph.emitter import anyize_paths
 from process_bigraph.process_types import ProcessTypes
 
 from simularium_readdy_models.actin import (
@@ -94,7 +95,9 @@ class MultiscaleActinModelSettings:
         obstacle_controlled_position_x: float = 0.0,
         obstacle_controlled_position_y: float = 0.0,
         obstacle_controlled_position_z: float = 0.0,
-        random_seed: int = 0
+        random_seed: int = 0,
+        output_base_name: str = "test",
+        output_dir_path: str = ""
     ):
         self.config = {
         "name": name,
@@ -173,6 +176,8 @@ class MultiscaleActinModelSettings:
         'obstacle_controlled_position_y': obstacle_controlled_position_y,
         'obstacle_controlled_position_z': obstacle_controlled_position_z,
         'random_seed': random_seed,
+        'output_base_name': output_base_name,
+        'output_dir_path': output_dir_path
     }
 
     def get_config(self) -> dict:
@@ -252,14 +257,22 @@ class MultiscaleActinModel(Composite):
             **monomers
         }
 
-        state["emitter"] = emitter_from_wires(
-            {
-                'particles': ['particles'],
-                'topologies': ['topologies'],   
-                'global_time': ['global_time']    
+        emitter_wires = {
+            'particles': ['particles'],
+            'topologies': ['topologies'],   
+            'global_time': ['global_time']
+        }
+
+        state["emitter"] = {
+            '_type': 'step',
+            'address': "local:simularium-emitter",
+            'config': {
+                'emit': anyize_paths(emitter_wires),
+                'base_name': config["output_base_name"],
+                "output_dir" : config["output_dir_path"]
             },
-            address='local:simularium-emitter'
-        )
+            'inputs': emitter_wires
+        }
 
         core = ProcessTypes()
         particle = {
@@ -285,7 +298,10 @@ class MultiscaleActinModel(Composite):
 if __name__ == "__main__":
     print("Creating Multiscale Actin Model!")
     total_time: float = 3.0
-    model = MultiscaleActinModel()
+    output_base_name = "multiscale_actin"
+    output_dir_path = os.path.expanduser("test/output")
+    settings = MultiscaleActinModelSettings(output_base_name=output_base_name, output_dir_path=output_dir_path)
+    model = MultiscaleActinModel(settings)
     print("Preparing to run!")
     model.run(total_time)
 

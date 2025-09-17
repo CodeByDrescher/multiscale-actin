@@ -1,5 +1,7 @@
 from typing import Any, Dict, Tuple
 
+import os
+
 from process_bigraph import Emitter
 
 import numpy as np
@@ -17,6 +19,8 @@ class SimulariumEmitter(Emitter):
 
     def __init__(self, config, core):
         super().__init__(config, core)
+        self.output_dir = config["output_dir"] if ("output_dir" in config and config["output_dir"] is not None) else ""
+        self.base_name = config["base_name"] if ("base_name" in config and config["base_name"] is not None) else "test"
         self.configuration_data = None
         self.saved_data: Dict[float, Dict[str, Any]] = {}
 
@@ -177,6 +181,6 @@ class SimulariumEmitter(Emitter):
         simularium_converter = SimulariumEmitter.get_simularium_converter(
             trajectory, box_dimensions, 0.1
         )
-        output_path = "test"
-        simularium_converter.save(output_path)
-        return f"saved to {output_path}.simularium"
+        save_path = os.path.join(self.output_dir, self.base_name)
+        simularium_converter.save(save_path)
+        return f"saved to {save_path}.simularium"
