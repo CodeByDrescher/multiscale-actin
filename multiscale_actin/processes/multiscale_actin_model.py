@@ -3,16 +3,15 @@ import random
 import numpy as np
 import os
 
-from process_bigraph import Process, Composite, gather_emitter_results
+from process_bigraph import Composite, gather_emitter_results
 from process_bigraph.emitter import anyize_paths
 from process_bigraph.process_types import ProcessTypes
 
 from simularium_readdy_models.actin import (
-    ActinSimulation,
     ActinGenerator,
     FiberData,
 )
-from simularium_readdy_models.common import ReaddyUtil, get_membrane_monomers
+from simularium_readdy_models.common import get_membrane_monomers
 
 from simularium_emitter import SimulariumEmitter
 
@@ -183,17 +182,9 @@ class MultiscaleActinModelSettings:
     def get_config(self) -> dict:
         return self.config
 
-class MultiscaleActinModel(Composite):
-    
-    def __init__(self, model_settings: MultiscaleActinModelSettings = MultiscaleActinModelSettings()) -> None:
-        config, core = MultiscaleActinModel._generate_model(model_settings)
-        super().__init__(config=config, core=core)
-
-    @staticmethod
-    def _generate_model(model_settings: MultiscaleActinModelSettings) -> tuple[dict, ProcessTypes]:
-        config = model_settings.get_config()
-        random.seed(config['random_seed'])
-        np.random.seed(config['random_seed'])
+    def generate_general_model(self, use_local_protocol=True) -> tuple[dict, ProcessTypes]:
+        random.seed(self.config['random_seed'])
+        np.random.seed(self.config['random_seed'])
 
         actin_monomers = ActinGenerator.get_monomers(
             fibers_data=[
@@ -205,30 +196,30 @@ class MultiscaleActinModel(Composite):
                     ],
                     "Actin-Polymer",
                 )
-            ], 
-            use_uuids=False, 
-            start_normal=np.array([0., 1., 0.]), 
+            ],
+            use_uuids=False,
+            start_normal=np.array([0., 1., 0.]),
             longitudinal_bonds=True,
             barbed_binding_site=True,
         )
         actin_monomers = ActinGenerator.setup_fixed_monomers(
-            actin_monomers, 
-            orthogonal_seed=True, 
-            n_fixed_monomers_pointed=3, 
+            actin_monomers,
+            orthogonal_seed=True,
+            n_fixed_monomers_pointed=3,
             n_fixed_monomers_barbed=0,
         )
         membrane_monomers = get_membrane_monomers(
-            center=np.array([25.0, 0.0, 0.0]), 
-            size=np.array([0.0, 100.0, 100.0]), 
+            center=np.array([25.0, 0.0, 0.0]),
+            size=np.array([0.0, 100.0, 100.0]),
             particle_radius=2.5,
             start_particle_id=len(actin_monomers["particles"].keys()),
             top_id=1
         )
         free_actin_monomers = ActinGenerator.get_free_actin_monomers(
-            concentration=500.0, 
-            box_center=np.array([12., 0., 0.]), 
-            box_size=np.array([20., 50., 50.]), 
-            start_particle_id=len(actin_monomers["particles"].keys()) + len(membrane_monomers["particles"].keys()), 
+            concentration=500.0,
+            box_center=np.array([12., 0., 0.]),
+            box_size=np.array([20., 50., 50.]),
+            start_particle_id=len(actin_monomers["particles"].keys()) + len(membrane_monomers["particles"].keys()),
             start_top_id=2
         )
         monomers = {
@@ -240,41 +231,47 @@ class MultiscaleActinModel(Composite):
             'topologies': {**monomers['topologies'], **free_actin_monomers['topologies']}
         }
 
-        state  = {
+        readdy_address = 'local:readdy' if use_local_protocol \
+            else 'python:conda<git+https://github.com/CodeByDrescher/multiscale-actin.git>@multiscale_actin.processes.readdy_actin_membrane.ReaddyActinMembrane'
+
+        state = {
             'readdy': {
                 '_type': 'process',
-                'address': 'local:readdy',
-                'config': config,
+                'address': readdy_address,
+                'config': self.config,
                 'inputs': {
                     'particles': ['particles'],
-                    'topologies': ['topologies']        
+                    'topologies': ['topologies']
                 },
                 'outputs': {
                     'particles': ['particles'],
-                    'topologies': ['topologies']        
+                    'topologies': ['topologies']
                 }
             },
             **monomers
         }
 
+        simularium_address = 'local:simularium-emitter' if use_local_protocol \
+            else 'python:conda<git+https://github.com/CodeByDrescher/multiscale-actin.git>@multiscale_actin.processes.simularium_emitter.SimulariumEmitter'
+
         emitter_wires = {
             'particles': ['particles'],
-            'topologies': ['topologies'],   
+            'topologies': ['topologies'],
             'global_time': ['global_time']
         }
 
         state["emitter"] = {
             '_type': 'step',
-            'address': "local:simularium-emitter",
+            'address': simularium_address,
             'config': {
                 'emit': anyize_paths(emitter_wires),
-                'base_name': config["output_base_name"],
-                "output_dir" : config["output_dir_path"]
+                'base_name': self.config["output_base_name"],
+                "output_dir": self.config["output_dir_path"]
             },
             'inputs': emitter_wires
         }
 
-        core = ProcessTypes()
+        registry_core = ProcessTypes()
         particle = {
             'type_name': 'string',
             'position': 'tuple[float,float,float]',
@@ -286,14 +283,13 @@ class MultiscaleActinModel(Composite):
             'particle_ids': 'list[integer]',
             '_apply': 'set',
         }
-        core.register('topology', topology)
-        core.register('particle', particle)
+        registry_core.register('topology', topology)
+        registry_core.register('particle', particle)
 
-        core.register_process('readdy', ReaddyActinMembrane)
-        core.register_process('simularium-emitter', SimulariumEmitter)
+        registry_core.register_process('readdy', ReaddyActinMembrane)
+        registry_core.register_process('simularium-emitter', SimulariumEmitter)
 
-        return {"state": state}, core
-
+        return {"state": state}, registry_core
 
 if __name__ == "__main__":
     print("Creating Multiscale Actin Model!")
@@ -301,7 +297,8 @@ if __name__ == "__main__":
     output_base_name = "multiscale_actin"
     output_dir_path = os.path.expanduser("test/output")
     settings = MultiscaleActinModelSettings(output_base_name=output_base_name, output_dir_path=output_dir_path)
-    model = MultiscaleActinModel(settings)
+    config, core = settings.generate_general_model()
+    model = Composite(config, core)
     print("Preparing to run!")
     model.run(total_time)
 
