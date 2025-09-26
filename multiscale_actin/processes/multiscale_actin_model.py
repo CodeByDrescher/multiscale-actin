@@ -17,6 +17,24 @@ from simularium_emitter import SimulariumEmitter
 
 from multiscale_actin.processes.readdy_actin_membrane import ReaddyActinMembrane
 
+def register_types(registry_core: ProcessTypes) -> ProcessTypes:
+    if registry_core is None:
+        raise ValueError("provided `registry_core` cannot be None!")
+    particle = {
+        'type_name': 'string',
+        'position': 'tuple[float,float,float]',
+        'neighbor_ids': 'list[integer]',
+        '_apply': 'set',
+    }
+    topology = {
+        'type_name': 'string',
+        'particle_ids': 'list[integer]',
+        '_apply': 'set',
+    }
+    registry_core.register('topology', topology)
+    registry_core.register('particle', particle)
+    return registry_core
+
 class MultiscaleActinModelSettings:
     def __init__(self,
         name: str = "actin_membrane",
@@ -271,20 +289,7 @@ class MultiscaleActinModelSettings:
             'inputs': emitter_wires
         }
 
-        registry_core = ProcessTypes()
-        particle = {
-            'type_name': 'string',
-            'position': 'tuple[float,float,float]',
-            'neighbor_ids': 'list[integer]',
-            '_apply': 'set',
-        }
-        topology = {
-            'type_name': 'string',
-            'particle_ids': 'list[integer]',
-            '_apply': 'set',
-        }
-        registry_core.register('topology', topology)
-        registry_core.register('particle', particle)
+        registry_core = register_types(ProcessTypes())
 
         registry_core.register_process('readdy', ReaddyActinMembrane)
         registry_core.register_process('simularium-emitter', SimulariumEmitter)
