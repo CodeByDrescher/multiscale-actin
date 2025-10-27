@@ -3,13 +3,11 @@ import random
 import numpy as np
 
 from process_bigraph import Process
-from multiscale_actin.processes.multiscale_actin_model_manager import MultiscaleActinModelManager
 
 from simularium_readdy_models.actin import (
     ActinSimulation,
 )
 from simularium_readdy_models.common import ReaddyUtil
-
 
 class ReaddyActinMembrane(Process):
     '''
@@ -182,8 +180,3 @@ def simulate_readdy(internal_timestep, readdy_system, readdy_simulation, timeste
             calculate_forces()
 
     readdy_simulation._run_custom_loop(loop, show_summary=False)
-    
-
-if __name__ == "__main__":
-
-    MultiscaleActinModelManager().run_readdy_actin_membrane()
