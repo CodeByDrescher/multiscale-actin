@@ -2,19 +2,13 @@ import random
 
 import numpy as np
 
-from process_bigraph import Process, Composite, gather_emitter_results
-from process_bigraph.emitter import emitter_from_wires
-from process_bigraph.process_types import ProcessTypes
-from multiscale_actin.processes.multiscale_actin_model import MultiscaleActinModelSettings
+from process_bigraph import Process
+from multiscale_actin.processes.multiscale_actin_model_manager import MultiscaleActinModelManager
 
 from simularium_readdy_models.actin import (
     ActinSimulation,
-    ActinGenerator,
-    FiberData,
 )
-from simularium_readdy_models.common import ReaddyUtil, get_membrane_monomers
-
-from multiscale_actin.processes.simularium_emitter import SimulariumEmitter
+from simularium_readdy_models.common import ReaddyUtil
 
 
 class ReaddyActinMembrane(Process):
@@ -188,15 +182,8 @@ def simulate_readdy(internal_timestep, readdy_system, readdy_simulation, timeste
             calculate_forces()
 
     readdy_simulation._run_custom_loop(loop, show_summary=False)
-
-
-def run_readdy_actin_membrane(total_time_in_ns = 3):
-    settings = MultiscaleActinModelSettings()
-    config, core = settings.generate_general_model()
-    sim = Composite(config, core)
-    sim.run(total_time_in_ns)
-    results = gather_emitter_results(sim)
     
 
 if __name__ == "__main__":
-    run_readdy_actin_membrane()
+
+    MultiscaleActinModelManager().run_readdy_actin_membrane()
