@@ -14,7 +14,7 @@ from simularium_readdy_models.actin import (
 )
 from simularium_readdy_models.common import ReaddyUtil, get_membrane_monomers
 
-from simularium_emitter import SimulariumEmitter
+from multiscale_actin.processes.simularium_emitter import SimulariumEmitter
 
 
 class ReaddyActinMembrane(Process):
