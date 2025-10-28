@@ -3,11 +3,29 @@ import random
 import numpy as np
 
 from process_bigraph import Process
+from process_bigraph.process_types import ProcessTypes
 
-from simularium_readdy_models.actin import (
-    ActinSimulation,
-)
+from simularium_readdy_models.actin import ActinSimulation
 from simularium_readdy_models.common import ReaddyUtil
+
+def register_types(registry_core: ProcessTypes) -> ProcessTypes:
+    if registry_core is None:
+        raise ValueError("provided `registry_core` cannot be None!")
+    particle = {
+        'type_name': 'string',
+        'position': 'tuple[float,float,float]',
+        'neighbor_ids': 'list[integer]',
+        '_apply': 'set',
+    }
+    topology = {
+        'type_name': 'string',
+        'particle_ids': 'list[integer]',
+        '_apply': 'set',
+    }
+    registry_core.register('topology', topology)
+    registry_core.register('particle', particle)
+    return registry_core
+
 
 class ReaddyActinMembrane(Process):
     '''
@@ -18,7 +36,7 @@ class ReaddyActinMembrane(Process):
     config_schema = {
         'name': 'string',
         'internal_timestep': 'float',
-        'box_size': 'tuple[float,float,float]',
+        'box_size': 'array',
         'periodic_boundary': 'boolean',
         'reaction_distance': 'float',
         'n_cpu': 'integer',
@@ -71,7 +89,6 @@ class ReaddyActinMembrane(Process):
         'angles_force_constant': 'float',
         'dihedrals_force_constant': 'float',
         'actin_constraints': 'boolean',
-        'use_box_actin': 'boolean',
         'actin_box_center_x': 'float',
         'actin_box_center_y': 'float',
         'actin_box_center_z': 'float',

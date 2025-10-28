@@ -13,8 +13,8 @@ from simularium_readdy_models.actin import (
     FiberData,
 )
 
-from multiscale_actin.processes.multiscale_actin_model import MultiscaleActinModelSettings, register_types
-from multiscale_actin.processes.readdy_actin_membrane import ReaddyActinMembrane
+from multiscale_actin.processes.multiscale_actin_model_settings import MultiscaleActinModelSettings
+from multiscale_actin.processes.readdy_actin_membrane import ReaddyActinMembrane, register_types
 from multiscale_actin.processes.simularium_emitter import SimulariumEmitter
 
 class MultiscaleActinModelManager:

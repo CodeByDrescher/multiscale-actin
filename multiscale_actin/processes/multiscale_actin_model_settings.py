@@ -1,25 +1,5 @@
 import numpy as np
 
-from process_bigraph.process_types import ProcessTypes
-
-def register_types(registry_core: ProcessTypes) -> ProcessTypes:
-    if registry_core is None:
-        raise ValueError("provided `registry_core` cannot be None!")
-    particle = {
-        'type_name': 'string',
-        'position': 'tuple[float,float,float]',
-        'neighbor_ids': 'list[integer]',
-        '_apply': 'set',
-    }
-    topology = {
-        'type_name': 'string',
-        'particle_ids': 'list[integer]',
-        '_apply': 'set',
-    }
-    registry_core.register('topology', topology)
-    registry_core.register('particle', particle)
-    return registry_core
-
 class MultiscaleActinModelSettings:
     def __init__(self,
         name: str = "actin_membrane",
